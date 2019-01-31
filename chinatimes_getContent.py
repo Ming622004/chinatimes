@@ -1,9 +1,13 @@
 # 引用相關套件
-import time, os, json
+import time, os, json, datetime
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import Chrome
+import line_msg
 
 if __name__ == "__main__":
+
+    line_msg.lineNotify("getContent Start!!")
+
     tag_dict = {"政治": "politic",
             "生活": "life",
             "言論": "opinion",
@@ -29,21 +33,28 @@ if __name__ == "__main__":
             "周刊王": "wantweekly",
             "孝親獎": "loveparents",
             "更多": "more"}
+
+    msgCount = 0
     while True:
 
         # 開啟要爬的新聞網址檔案
         while True:
-            if os.path.exists("./data/update_CT_news_url.txt.bak"):
-                with open("./data/update_CT_news_url.txt.bak", "r", encoding="utf-8") as f:
-                    url_list = f.read().split("\n")
-                break
-            elif os.path.exists("./data/update_CT_news_url.txt"):
-                os.rename("./data/update_CT_news_url.txt", "./data/update_CT_news_url.txt.bak")
-                with open("./data/update_CT_news_url.txt.bak", "r", encoding="utf-8") as f:
-                    url_list = f.read().split("\n")
-                break
-            else:
-                time.sleep(400)
+            try:
+                if os.path.exists("./data/update_CT_news_url.txt.bak"):
+                    with open("./data/update_CT_news_url.txt.bak", "r", encoding="utf-8") as f:
+                        url_list = f.read().split("\n")
+                    break
+                elif os.path.exists("./data/update_CT_news_url.txt"):
+                    os.rename("./data/update_CT_news_url.txt", "./data/update_CT_news_url.txt.bak")
+                    with open("./data/update_CT_news_url.txt.bak", "r", encoding="utf-8") as f:
+                        url_list = f.read().split("\n")
+                    break
+                else:
+                    time.sleep(400)
+            except Exception as e:
+                print("file read error")
+                time.sleep(120)
+            continue
 
         # 紀錄爬蟲開始時間
         start_time = time.time()
@@ -65,8 +76,9 @@ if __name__ == "__main__":
 
             # print("處理頁面:", news_url)
             i_count = i_count + 1
-            if i_count == 20:
-                print("已經處理20個網頁")
+            if i_count == 200:
+                print("已經處理200個網頁")
+                line_msg.lineNotify("getContent: 200 wedsites done")
                 i_count = 0
             #     driver.quit()
             #     time.sleep(20)
@@ -129,21 +141,13 @@ if __name__ == "__main__":
                 with open("./data/error.log", "a", encoding="utf-8") as f_err:
                     f_err.write("getContent_Error:" + news_url + "\n")
                 continue
-            time.sleep(3)
+            time.sleep(5)
 
-        # print(news_list)
         ## 不紀錄重複的新聞發布日期
         for news in news_list:
-            #print(news)
+            # print(news)
             if not news["news_create_time"].split(" ")[0] in date_list:
                 date_list.append(news["news_create_time"].split(" ")[0])
-
-        # 紀錄爬蟲結束時間
-        end_time = time.time()
-        print('Crawler Done, Time cost: %s ' % (end_time - start_time))
-
-        # 紀錄存檔開始時間
-        start_time = time.time()
 
         ## 將每筆新聞依照發布日期分類
         for date in date_list:
@@ -174,3 +178,9 @@ if __name__ == "__main__":
         end_time = time.time()
         print('Save Done,Total Time cost: %s ' % (end_time - start_time))
         time.sleep(200)
+
+        msgCount = msgCount + 1
+        if msgCount == 10:
+            msg_line = "getContent done 10 times --- " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            line_msg.lineNotify(msg_line)
+            msgCount = 0

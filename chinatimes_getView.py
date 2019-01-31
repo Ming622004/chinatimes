@@ -1,21 +1,22 @@
 from bs4 import BeautifulSoup
 import time, os, json
 import requests, datetime
+import line_msg
 
 if __name__ == "__main__":
     # 建立路徑
-
+    line_msg.lineNotify("getViews Start!!")
+    err_count = 0
+    msgCount = 0
     while True:
         start_time = time.time()
 
         # 開始爬蟲
-
         view_list = []  # 紀錄爬回來的新聞觀看數
         for i in range(1, 81):
             hoturl = "https://www.chinatimes.com/realtimenews/hot/?page=" + str(i)
-            if i == 40 :
-                print("正在處理頁面:", hoturl)
-
+            # if i == 40 :
+            #     print("正在處理頁面:", hoturl)
             try:
                 session = requests.session()
                 page_response = session.get(hoturl, headers={"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
@@ -36,9 +37,14 @@ if __name__ == "__main__":
                                           "news_tag": news_tag.replace(" ", "").replace("\n", ""),
                                           "view": news_view,
                                           "time": web_time})
-
+                err_count = 0
             except Exception as e:
+                err_count = err_count + 1
+                if err_count > 5:
+                    line_msg.lineNotify("====WARNING WARNING WARNING====")
+                    line_msg.lineNotify("getView crawler part error times > 5 !!!")
                 print("Crawler part Error")
+                time.sleep(10)
                 continue
             time.sleep(1)
 
@@ -98,4 +104,8 @@ if __name__ == "__main__":
         else:
             time.sleep(5)
 
-# end
+        msgCount = msgCount + 1
+        if msgCount == 10:
+            msg_line = "Viewer done 10 times --- " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            line_msg.lineNotify(msg_line)
+            msgCount = 0
